@@ -5,10 +5,7 @@ from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
 from awsglue.dynamicframe import DynamicFrame
-from awsglue import DynamicFrame
-import gs_derived
 from pyspark.sql import functions as SqlFuncs
-
 
 def sparkSqlQuery(glueContext, query, mapping, transformation_ctx) -> DynamicFrame:
     for alias, frame in mapping.items():
@@ -16,10 +13,7 @@ def sparkSqlQuery(glueContext, query, mapping, transformation_ctx) -> DynamicFra
     result = spark.sql(query)
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
-
-def sparkAggregate(
-    glueContext, parentFrame, groups, aggs, transformation_ctx
-) -> DynamicFrame:
+def sparkAggregate(glueContext, parentFrame, groups, aggs, transformation_ctx) -> DynamicFrame:
     aggsFuncs = []
     for column, func in aggs:
         aggsFuncs.append(getattr(SqlFuncs, func)(column))
@@ -30,13 +24,17 @@ def sparkAggregate(
     )
     return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
 
-
 args = getResolvedOptions(sys.argv, ["JOB_NAME"])
 sc = SparkContext()
 glueContext = GlueContext(sc)
 spark = glueContext.spark_session
 job = Job(glueContext)
 job.init(args["JOB_NAME"], args)
+
+# Replace these values with your actual values
+# Sensitive information (e.g., database credentials) should be provided securely
+# CLIENT_SECRET = "YOUR_CLIENT_SECRET"
+# BUCKET_NAME = "YOUR_BUCKET_NAME"
 
 # Script generated for node S3 bucket
 S3bucket_node1694090244020 = glueContext.create_dynamic_frame.from_catalog(
@@ -56,24 +54,14 @@ AmazonS3_node1694091091069 = glueContext.create_dynamic_frame.from_catalog(
 ChangeSchema_node1694090421109 = ApplyMapping.apply(
     frame=S3bucket_node1694090244020,
     mappings=[
-        ("location_id", "int", "location_id", "int"),
-        ("location_description", "string", "location_description", "string"),
-        ("transaction_datetime", "string", "transaction_datetime", "timestamp"),
-        ("week_day", "string", "week_day", "string"),
-        ("sale_number", "int", "sale_number", "int"),
-        ("transaction_type", "string", "transaction_type", "string"),
-        ("product_description", "string", "product_description", "string"),
-        ("transaction_amount", "double", "transaction_amount", "double"),
-        ("payment_type", "string", "payment_type", "string"),
-        ("bonus_amount", "double", "bonus_amount", "double"),
-        ("ticket_value", "int", "ticket_value", "int"),
+    # Replace with your mapping
     ],
     transformation_ctx="ChangeSchema_node1694090421109",
 )
 
 # Script generated for node SQL Query
 SqlQuery0 = """
-select * from myDataSource where transaction_type not in ('Balance Adjustments', 'Payment','Card Reissue New','Card Reissue Card Swipe Error') AND transaction_amount != 0 AND sale_number !=0
+select * from myDataSource where transaction_type not in     # Replace with your Data  AND transaction_amount     # Replace with your Data AND sale_number !=0
 """
 SQLQuery_node1694090619570 = sparkSqlQuery(
     glueContext,
@@ -87,15 +75,7 @@ Aggregate_node1694090845564 = sparkAggregate(
     glueContext,
     parentFrame=SQLQuery_node1694090619570,
     groups=[
-        "location_id",
-        "location_description",
-        "transaction_datetime",
-        "week_day",
-        "sale_number",
-        "transaction_type",
-        "product_description",
-        "payment_type",
-        "ticket_value",
+    # Replace with your mapping
     ],
     aggs=[["transaction_amount", "sum"], ["bonus_amount", "sum"]],
     transformation_ctx="Aggregate_node1694090845564",
@@ -126,25 +106,7 @@ DerivedColumn_node1694281103555 = DerivedColumn_node1694092446073.gs_derived(
 ApplyMapping_node1694092716228 = ApplyMapping.apply(
     frame=DerivedColumn_node1694281103555,
     mappings=[
-        ("locationclass", "string", "locationclass", "string"),
-        ("cityname", "string", "cityname", "string"),
-        ("`sum(bonus_amount)`", "double", "bonus_amount", "double"),
-        ("product_description", "string", "product_description", "string"),
-        ("ticket_value", "int", "ticket_value", "int"),
-        ("region", "string", "region", "string"),
-        ("week_day", "string", "week_day", "string"),
-        ("transaction_datetime", "timestamp", "transaction_datetime", "timestamp"),
-        ("location_description", "string", "location_description", "string"),
-        ("payment_type", "string", "payment_type", "string"),
-        ("locationname", "string", "locationname", "string"),
-        ("location_id", "int", "location_id", "int"),
-        ("companyname", "string", "companyname", "string"),
-        ("`sum(transaction_amount)`", "double", "transaction_amount", "double"),
-        ("transaction_type", "string", "transaction_type", "string"),
-        ("brandname", "string", "brandname", "string"),
-        ("sale_number", "int", "sale_number", "int"),
-        ("bussiness_datatime", "timestamp", "bussiness_datatime", "timestamp"),
-        ("hour", "string", "hour", "string"),
+    # Replace with your mapping
     ],
     transformation_ctx="ApplyMapping_node1694092716228",
 )
@@ -154,8 +116,8 @@ AmazonRedshift_node1694108173144 = glueContext.write_dynamic_frame.from_options(
     frame=ApplyMapping_node1694092716228,
     connection_type="redshift",
     connection_options={
-        "postactions": "BEGIN; MERGE INTO public.sample_data_new USING public.sample_data_new_temp_2d4197 ON sample_data_new.location_id = sample_data_new_temp_2d4197.location_id AND sample_data_new.sale_number = sample_data_new_temp_2d4197.sale_number AND sample_data_new.transaction_datetime = sample_data_new_temp_2d4197.transaction_datetime AND sample_data_new.transaction_type = sample_data_new_temp_2d4197.transaction_type AND sample_data_new.product_description = sample_data_new_temp_2d4197.product_description WHEN MATCHED THEN UPDATE SET locationclass = sample_data_new_temp_2d4197.locationclass, cityname = sample_data_new_temp_2d4197.cityname, bonus_amount = sample_data_new_temp_2d4197.bonus_amount, product_description = sample_data_new_temp_2d4197.product_description, ticket_value = sample_data_new_temp_2d4197.ticket_value, region = sample_data_new_temp_2d4197.region, week_day = sample_data_new_temp_2d4197.week_day, transaction_datetime = sample_data_new_temp_2d4197.transaction_datetime, location_description = sample_data_new_temp_2d4197.location_description, payment_type = sample_data_new_temp_2d4197.payment_type, locationname = sample_data_new_temp_2d4197.locationname, location_id = sample_data_new_temp_2d4197.location_id, companyname = sample_data_new_temp_2d4197.companyname, transaction_amount = sample_data_new_temp_2d4197.transaction_amount, transaction_type = sample_data_new_temp_2d4197.transaction_type, brandname = sample_data_new_temp_2d4197.brandname, sale_number = sample_data_new_temp_2d4197.sale_number, bussiness_datatime = sample_data_new_temp_2d4197.bussiness_datatime, hour = sample_data_new_temp_2d4197.hour WHEN NOT MATCHED THEN INSERT VALUES (sample_data_new_temp_2d4197.locationclass, sample_data_new_temp_2d4197.cityname, sample_data_new_temp_2d4197.bonus_amount, sample_data_new_temp_2d4197.product_description, sample_data_new_temp_2d4197.ticket_value, sample_data_new_temp_2d4197.region, sample_data_new_temp_2d4197.week_day, sample_data_new_temp_2d4197.transaction_datetime, sample_data_new_temp_2d4197.location_description, sample_data_new_temp_2d4197.payment_type, sample_data_new_temp_2d4197.locationname, sample_data_new_temp_2d4197.location_id, sample_data_new_temp_2d4197.companyname, sample_data_new_temp_2d4197.transaction_amount, sample_data_new_temp_2d4197.transaction_type, sample_data_new_temp_2d4197.brandname, sample_data_new_temp_2d4197.sale_number, sample_data_new_temp_2d4197.bussiness_datatime, sample_data_new_temp_2d4197.hour); DROP TABLE public.sample_data_new_temp_2d4197; END;",
-        "redshiftTmpDir": "s3://aws-glue-assets-735926817203-eu-west-1/temporary/",
+        "postactions": "BEGIN; MERGE INTO public.sample_data_new USING public.sample_data_new_temp_2d4197 ON sample_data_new.location_id = sample_data_new_temp_2d4197.location_id AND sample_data_new.sale_number = sample_data_new_temp_2d4197.sale_number AND sample_data_new.transaction_datetime = sample_data_new_temp_2d4197.transaction_datetime AND sample_data_new.transaction_type = sample_data_new_temp_2d4197.transaction_type AND sample_data_new.product_description = sample_data_new_temp_2d4197.product_description WHEN MATCHED THEN UPDATE SET locationclass = sample_data_new_temp_2d4197.locationclass, cityname = sample_data_new_temp_2d4197.cityname, bonus_amount = sample_data_new_temp_2d4197.bonus_amount, product_description = sample_data_new_temp_2d4197.product_description, ticket_value = sample_data_new_temp_2d4197.ticket_value, region = sample_data_new_temp_2d4197.region, week_day = sample_data_new_temp_2d4197.week_day, transaction_datetime = sample_data_new_temp_2d4197.transaction_datetime, location_description = sample_data_new_temp_2d4197.location_description, payment_type = sample_data_new_temp_2d4197.payment_type, locationname = sample_data_new_temp_2d4197.locationname, location_id = sample_data_new_temp_2d4197.location_id, companyname = sample_data_new_temp_2d4197.companyname, transaction_amount = sample_data_new_temp_2d4197.transaction_amount, transaction_type = sample_data_new_temp_2d4197.transaction_type, brandname = sample_data_new_temp_2d4197.brandname, sale_number = sample_data_new_temp_2d4197.sale_number, bussiness_datatime = sample_data_new_temp_2d4197.bussiness_datatime, hour = sample_data_new_temp_2d4197.hour); DROP TABLE public.sample_data_new_temp_2d4197; END;",
+        "redshiftTmpDir": 
         "useConnectionProperties": "true",
         "dbtable": "public.sample_data_new_temp_2d4197",
         "connectionName": "Reshift",
